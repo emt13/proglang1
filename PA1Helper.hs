@@ -1,4 +1,4 @@
-module PA1Helper(runProgram,Lexp(..)) where
+module PA1Helper(runProgram,Lexp(..),parseLExpr) where
 
 import Text.Parsec
 import Text.Parsec.String
@@ -20,10 +20,15 @@ instance Eq Lexp  where
 
 -- Allow for Lexp datatype to be printed like the Oz representation of a lambda expression
 instance Show Lexp  where 
-    show (Atom v) = v
-    show (Lambda exp1 exp2) = "\\" ++ (show exp1) ++ "." ++ (show exp2) 
+    show (Atom v) = "" ++ v ++""
+    show (Lambda exp1 exp2) = "\\" ++ (show exp1) ++ "." ++ (show exp2) ++ ""
     show (Apply exp1 exp2) = "(" ++ (show exp1) ++ " " ++ (show exp2) ++ ")" 
-
+{-
+instance Show Lexp  where 
+    show (Atom v) = v
+    show (Lambda exp1 exp2) = "\\" ++ (show exp1) ++ "...." ++ (show exp1) 
+    show (Apply exp1 exp2) = "(" ++ (show exp1) ++ " |  " ++ (show exp1) ++ ")" 
+-}
 
 -- Reserved keywords in Oz
 -- P. 841 Table C.8, "Concepts, Techniques, and Models of Computer Programming", 
@@ -114,6 +119,15 @@ outputPrinter n ((lexp,lexp'):lexps) = do
     putStrLn ("Input " ++ (show n) ++ ": " ++ (show lexp))
     putStrLn ("Result " ++ (show n) ++ ": " ++ (show lexp'))
     outputPrinter (n+1) lexps
+{- 
+disp :: Lexp -> 
+disp v@(Atom _) = print $ show("first : ") ++ show(v)
+disp lexp@(Lambda (Atom _) _) = print $ show("second : ") ++ show(lexp)
+disp lexp@(Apply _ _) = print $ show("third : ") ++ show(lexp) 
+-}
+--dispL :: [Lexp] ->IO()
+--disp 
+--dispL [h:t] = dispL t
 
 -- Given a filename and function for reducing lambda expressions,
 -- reduce all valid lambda expressions in the file and output results.
@@ -122,6 +136,7 @@ runProgram fileName reducer = do
     fcontents <- readFile fileName
     let inList = lines fcontents 
     let parsedList = parseLEList inList
+--    map disp parsedList
     let reducedList = map reducer parsedList
     outputPrinter 1 (zip parsedList reducedList)   
 

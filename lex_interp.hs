@@ -20,6 +20,10 @@ id' v@(Atom _) = v
 id' lexp@(Lambda (Atom _) _) = lexp
 id' lexp@(Apply _ _) = lexp 
 
+disp :: Lexp -> Lexp
+disp x@(Apply _ _) = x
+disp x@(Lambda (Atom _) _) = x
+
 -- Entry point of program
 main = do
     putStrLn "Please enter a filename containing lambda expressions:"
