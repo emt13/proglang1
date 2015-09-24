@@ -50,8 +50,11 @@ eta lexp@(Atom _) = lexp
 eta lexp@(Lambda a (Apply b c))
   | a == b    = lexp
   | otherwise = b
-eta lexp@(Apply a b) = (Apply (reduce a) (reduce b))
+eta lexp@(Apply a b)  = (Apply (reduce a) (reduce b))
 eta lexp@(Lambda a b) = (Lambda (reduce a) (reduce b))
+
+doreduce :: Lexp -> Lexp
+doreduce lexp = reduce (doalpha lexp)
 
 reduce :: Lexp -> Lexp
 reduce lexp
@@ -64,12 +67,19 @@ doalpha :: Lexp -> Lexp
 doalpha lexp = alpha lexp "" 0
 
 alpha :: Lexp -> String -> Integer -> Lexp
-alpha (Atom a) c n
-  | (c == a) = (Atom (a++"1"))
+alpha (Atom a) c n = (Atom a)
+alpha (Lambda (Atom a) b) c n = (alpha' (Lambda (Atom n') (alpha b a (n+1))) a n')
+  where n' = (a++(show (n+1)))
+alpha (Apply a b) c n         = (Apply (alpha a c n) (alpha b c n)) 
+
+alpha' :: Lexp -> String -> String -> Lexp
+alpha' (Atom a) c n
+  | a == c = (Atom n)
   | otherwise = (Atom a)
-alpha (Lambda v@(Atom a) b) c n = (Lambda (Atom (a++(show 1))) (alpha b a (n+1)))
-alpha (Apply a b) c n         = (Apply (alpha a c n) b) 
-  
+alpha' (Lambda (Atom a) b) c n = (Lambda (Atom a) (alpha' b c n))
+alpha' (Apply a b) c n =  (Apply (alpha' a c n) (alpha' b c n))
+
+
  {-
 alpha :: Lexp -> String -> Integer -> Lexp
 alpha (Atom a) c n
@@ -87,4 +97,4 @@ main = do
     fileName <- getLine
     -- id' simply returns its input, so runProgram will result
     -- in printing each lambda expression twice. 
-    runProgram fileName doalpha 
+    runProgram fileName doreduce 
