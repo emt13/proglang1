@@ -60,7 +60,25 @@ reduce lexp
   | beta lexp /= lexp = eta (reduce(beta lexp))
   | otherwise         = lexp
   
+doalpha :: Lexp -> Lexp
+doalpha lexp = alpha lexp "" 0
+
+alpha :: Lexp -> String -> Integer -> Lexp
+alpha (Atom a) c n
+  | (c == a) = (Atom (a++"1"))
+  | otherwise = (Atom a)
+alpha (Lambda v@(Atom a) b) c n = (Lambda (Atom (a++(show 1))) (alpha b a (n+1)))
+alpha (Apply a b) c n         = (Apply (alpha a c n) b) 
   
+ {-
+alpha :: Lexp -> String -> Integer -> Lexp
+alpha (Atom a) c n
+  | (c == "") = (Atom (a++(show n)))
+  | otherwise = (Atom a)
+alpha (Lambda v@(Atom a) b) c n = (Lambda (Atom (a++(show (n+1)))) (alpha b a (n+1)))
+alpha (Apply a b) c n         = (Apply (alpha a "" n) (alpha b "" n)) 
+  
+-} 
  
 
 -- Entry point of program
@@ -69,4 +87,4 @@ main = do
     fileName <- getLine
     -- id' simply returns its input, so runProgram will result
     -- in printing each lambda expression twice. 
-    runProgram fileName reduce 
+    runProgram fileName doalpha 
