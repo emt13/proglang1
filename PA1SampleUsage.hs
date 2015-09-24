@@ -21,7 +21,19 @@ id' v@(Atom _) = v
 id' lexp@(Lambda (Atom _) _) = lexp
 id' lexp@(Apply _ _) = lexp 
 
---       input -> to_rep -> rep 
+-- Beta reduction
+beta :: Lexp -> Lexp
+beta lexp@(Atom _) = lexp
+beta lexp@(Apply (Lambda a v@(Atom b)) c)
+  | a == v    = c
+  | otherwise = v
+beta lexp@(Apply (Lambda a (Apply b c)) d)
+  | (a == b) && (a == c)    = (Apply d d)
+  | otherwise               = (Apply b c)
+beta lexp@(Apply v@(Lambda a g@(Lambda b c)) d) = beta (Lambda b (replace c a d))   
+beta lexp@(Apply a b) = (Apply (reduce a) (reduce b))
+beta lexp@(Lambda a b) = (Lambda (reduce a) (reduce b))
+
 replace :: Lexp -> Lexp -> Lexp -> Lexp
 replace v@(Atom d) to_rep rep
   | v == to_rep = rep
@@ -31,20 +43,7 @@ replace lexp@(Lambda a b) to_rep rep
   | otherwise = (Lambda a (replace b to_rep rep))
 replace lexp@(Apply a b) to_rep rep = (Apply (replace a to_rep rep) (replace b to_rep rep))
 
-beta :: Lexp -> Lexp
-beta lexp@(Atom _) = lexp
-beta lexp@(Apply (Lambda a v@(Atom b)) c)
-  | a == v    = c
-  | otherwise = v
-beta lexp@(Apply (Lambda a (Apply b c)) d)
-  | (a == b) && (a == c)    = (Apply d d)
-  | a == b                  = (Apply d c)
-  | a == c                  = (Apply b d)
-  | otherwise               = (Apply b c)
-beta lexp@(Apply v@(Lambda a g@(Lambda b c)) d) = beta (Lambda b (replace c a d))   
-beta lexp@(Apply a b) = (Apply (reduce a) (reduce b))
-beta lexp@(Lambda a b) = (Lambda (reduce a) (reduce b))
-
+-- Eta conversion
 eta :: Lexp -> Lexp
 eta lexp@(Atom _) = lexp
 eta lexp@(Lambda a (Apply b c))
@@ -53,16 +52,8 @@ eta lexp@(Lambda a (Apply b c))
 eta lexp@(Apply a b)  = (Apply (reduce a) (reduce b))
 eta lexp@(Lambda a b) = (Lambda (reduce a) (reduce b))
 
-doreduce :: Lexp -> Lexp
-doreduce lexp = reduce (doalpha lexp)
 
-reduce :: Lexp -> Lexp
-reduce lexp
---  | trace (show lexp) False == True = lexp
-  | eta lexp /= lexp  = reduce(eta lexp)
-  | beta lexp /= lexp = eta (reduce(beta lexp))
-  | otherwise         = lexp
-  
+-- Alpha Renaming
 doalpha :: Lexp -> Lexp
 doalpha lexp = alpha lexp "" 0
 
@@ -72,24 +63,29 @@ alpha (Lambda (Atom a) b) c n = (alpha' (Lambda (Atom n') (alpha b a (n+1))) a n
   where n' = (a++(show (n+1)))
 alpha (Apply a b) c n         = (Apply (alpha a c n) (alpha b c n)) 
 
+-- Alpha Renaming helper function
+-- alpha'(lambda expression,bound variable,new variable name)
 alpha' :: Lexp -> String -> String -> Lexp
 alpha' (Atom a) c n
-  | a == c = (Atom n)
-  | otherwise = (Atom a)
+  | a == c    = (Atom n)  -- if atom is equal to bound, rename
+  | otherwise = (Atom a)  -- else keep atom
+-- Recursively call alpha' until an atom is reached
 alpha' (Lambda (Atom a) b) c n = (Lambda (Atom a) (alpha' b c n))
 alpha' (Apply a b) c n =  (Apply (alpha' a c n) (alpha' b c n))
 
+-- Reduce function
+-- apply alpha renaming, then pass to reduce
+doreduce :: Lexp -> Lexp
+doreduce lexp = reduce (doalpha lexp)
 
- {-
-alpha :: Lexp -> String -> Integer -> Lexp
-alpha (Atom a) c n
-  | (c == "") = (Atom (a++(show n)))
-  | otherwise = (Atom a)
-alpha (Lambda v@(Atom a) b) c n = (Lambda (Atom (a++(show (n+1)))) (alpha b a (n+1)))
-alpha (Apply a b) c n         = (Apply (alpha a "" n) (alpha b "" n)) 
-  
--} 
- 
+-- reduce(input lambda expression, output lambda expression)
+-- if it is different, pass the reduced expression to reduce
+reduce :: Lexp -> Lexp
+reduce lexp
+  | eta lexp /= lexp  = reduce(eta lexp)
+  | beta lexp /= lexp = eta (reduce(beta lexp))
+  | otherwise         = lexp
+
 
 -- Entry point of program
 main = do
