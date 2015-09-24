@@ -21,18 +21,27 @@ id' v@(Atom _) = v
 id' lexp@(Lambda (Atom _) _) = lexp
 id' lexp@(Apply _ _) = lexp 
 
-
-red :: Lexp -> Lexp
---red lexp@(Lambda e m) = trace ("L e: " ++ (show e) ++ " x: " ++ (show m)) beta ((red e) (red m))
---red lexp@(Apply e m) = trace ("A e: " ++ (show e) ++ " x: " ++ (show m)) beta ((red e) (red m))
-red lexp@(Lambda e m) = trace ("L e: " ++ (show e) ++ " x: " ++ (show m)) beta lexp
-red lexp@(Apply e m) = trace ("A e: " ++ (show e) ++ " x: " ++ (show m)) beta lexp
-red v@(Atom _) = v
-
 beta :: Lexp -> Lexp
-beta (Apply (Lambda a b) c) 
-  | a == b = c
+beta lexp@(Atom _) = lexp
+beta lexp@(Apply (Lambda a b) c)
+  | a == b    = c
   | otherwise = b
+beta lexp@(Apply a b) = (Apply (reduce a) (reduce b))
+beta lexp = lexp
+
+eta :: Lexp -> Lexp
+eta lexp@(Atom _) = lexp
+eta lexp@(Lambda a (Apply b c))
+  | a /= b    = b
+  | otherwise = lexp
+eta lexp@(Apply a b) = (Apply (reduce a) (reduce b))
+eta lexp = lexp
+
+reduce :: Lexp -> Lexp
+reduce lexp
+  | eta lexp /= lexp  = reduce (eta lexp)
+  | beta lexp /= lexp = reduce (beta lexp)
+  | otherwise         = lexp
   
   
  
@@ -43,4 +52,4 @@ main = do
     fileName <- getLine
     -- id' simply returns its input, so runProgram will result
     -- in printing each lambda expression twice. 
-    runProgram fileName red 
+    runProgram fileName reduce 
