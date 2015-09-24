@@ -1,47 +1,19 @@
 import PA1Helper
 import Debug.Trace
 
--- Haskell representation of lambda expression
--- In Lambda Lexp Lexp, the first Lexp should always be Atom String
--- data Lexp = Atom String | Lambda Lexp Lexp | Apply Lexp  Lexp 
-
--- Given a filename and function for reducing lambda expressions,
--- reduce all valid lambda expressions in the file and output results.
--- runProgram :: String -> (Lexp -> Lexp) -> IO()
-
--- This is the identity function for the Lexp datatype, which is
--- used to illustrate pattern matching with the datatype. "_" was
--- used since I did not need to use bound variable. For your code,
--- however, you can replace "_" with an actual variable name so you
--- can use the bound variable. The "@" allows you to retain a variable
--- that represents the entire structure, while pattern matching on
--- components of the structure.
-id' :: Lexp -> Lexp
-id' v@(Atom _) = v
-id' lexp@(Lambda (Atom _) _) = lexp
-id' lexp@(Apply _ _) = lexp 
-
 -- Beta reduction
 beta :: Lexp -> Lexp
-beta lexp@(Atom _) = lexp
-beta lexp@(Apply (Lambda a v@(Atom b)) c)
-  | a == v    = c
-  | otherwise = v
-beta lexp@(Apply (Lambda a (Apply b c)) d)
-  | (a == b) && (a == c)    = (Apply d d)
-  | otherwise               = (Apply b c)
-beta lexp@(Apply v@(Lambda a g@(Lambda b c)) d) = beta (Lambda b (replace c a d))   
-beta lexp@(Apply a b) = (Apply (reduce a) (reduce b))
-beta lexp@(Lambda a b) = (Lambda (reduce a) (reduce b))
+beta (Atom a) = (Atom a)
+beta (Apply (Lambda (Atom a) b) c) = beta' b a c
+beta (Apply a b) = (Apply (reduce a) (reduce b))
+beta (Lambda a b) = (Lambda (reduce a) (reduce b))
 
-replace :: Lexp -> Lexp -> Lexp -> Lexp
-replace v@(Atom d) to_rep rep
-  | v == to_rep = rep
-  | otherwise = v
-replace lexp@(Lambda a b) to_rep rep
-  | b == to_rep = (Lambda a rep)
-  | otherwise = (Lambda a (replace b to_rep rep))
-replace lexp@(Apply a b) to_rep rep = (Apply (replace a to_rep rep) (replace b to_rep rep))
+beta' :: Lexp -> String -> Lexp -> Lexp
+beta' (Atom a) b c
+  | a == b = c
+  | otherwise = (Atom a)
+beta' (Apply a b) d e = (Apply (beta' a d e) (beta' b d e))
+beta' (Lambda a b) d e = (Lambda (beta' a d e) (beta' b d e))
 
 -- Eta conversion
 eta :: Lexp -> Lexp
@@ -51,7 +23,6 @@ eta lexp@(Lambda a (Apply b c))
   | otherwise = b
 eta lexp@(Apply a b)  = (Apply (reduce a) (reduce b))
 eta lexp@(Lambda a b) = (Lambda (reduce a) (reduce b))
-
 
 -- Alpha Renaming
 doalpha :: Lexp -> Lexp
@@ -71,15 +42,13 @@ alpha' (Atom a) c n
   | otherwise = (Atom a)  -- else keep atom
 -- Recursively call alpha' until an atom is reached
 alpha' (Lambda (Atom a) b) c n = (Lambda (Atom a) (alpha' b c n))
-alpha' (Apply a b) c n =  (Apply (alpha' a c n) (alpha' b c n))
+alpha' (Apply a b) c n         = (Apply (alpha' a c n) (alpha' b c n))
 
 -- Reduce function
 -- apply alpha renaming, then pass to reduce
 doreduce :: Lexp -> Lexp
 doreduce lexp = reduce (doalpha lexp)
 
--- reduce(input lambda expression, output lambda expression)
--- if it is different, pass the reduced expression to reduce
 reduce :: Lexp -> Lexp
 reduce lexp
   | eta lexp /= lexp  = reduce(eta lexp)
