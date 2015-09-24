@@ -30,18 +30,19 @@ beta lexp@(Apply (Lambda a v@(Atom b)) c)
 beta lexp@(Apply (Lambda a (Apply b c)) d)
   | (a == b) && (a == c)    = (Apply d d)
   | otherwise               = (Apply b c)
-beta lexp@(Apply v@(Lambda a g@(Lambda b c)) d) = beta (Lambda b (replace c a d))   
+beta lexp@(Apply v@(Lambda a g@(Lambda b c)) d) = beta (Lambda b (rep_var c a d))   
 beta lexp@(Apply a b) = (Apply (reduce a) (reduce b))
 beta lexp@(Lambda a b) = (Lambda (reduce a) (reduce b))
 
-replace :: Lexp -> Lexp -> Lexp -> Lexp
-replace v@(Atom d) to_rep rep
+-- replace function    input -> lexp to replace -> replacement lexp
+rep_var :: Lexp -> Lexp -> Lexp -> Lexp
+rep_var v@(Atom d) to_rep rep
   | v == to_rep = rep
   | otherwise = v
-replace lexp@(Lambda a b) to_rep rep
+rep_var lexp@(Lambda a b) to_rep rep
   | b == to_rep = (Lambda a rep)
-  | otherwise = (Lambda a (replace b to_rep rep))
-replace lexp@(Apply a b) to_rep rep = (Apply (replace a to_rep rep) (replace b to_rep rep))
+  | otherwise = (Lambda a (rep_var b to_rep rep))
+rep_var lexp@(Apply a b) to_rep rep = (Apply (rep_var a to_rep rep) (rep_var b to_rep rep))
 
 -- Eta conversion
 eta :: Lexp -> Lexp
