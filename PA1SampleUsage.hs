@@ -23,24 +23,30 @@ id' lexp@(Apply _ _) = lexp
 
 beta :: Lexp -> Lexp
 beta lexp@(Atom _) = lexp
-beta lexp@(Apply (Lambda a b) c)
-  | a == b    = c
-  | otherwise = b
+beta lexp@(Apply (Lambda a v@(Atom b)) c)
+  | a == v    = c
+  | otherwise = v
+beta lexp@(Apply (Lambda a (Apply b c)) d)
+  | a == b && a == c    = (Apply d d)
+  | a == b             = (Apply d c)
+  | a == c             = (Apply b d)
+  | otherwise          = (Apply b c)
 beta lexp@(Apply a b) = (Apply (reduce a) (reduce b))
-beta lexp = lexp
+beta lexp@(Lambda a b) = (Lambda (reduce a) (reduce b))
 
 eta :: Lexp -> Lexp
 eta lexp@(Atom _) = lexp
 eta lexp@(Lambda a (Apply b c))
-  | a /= b    = b
-  | otherwise = lexp
+  | a == b    = lexp
+  | otherwise = b
 eta lexp@(Apply a b) = (Apply (reduce a) (reduce b))
-eta lexp = lexp
+eta lexp@(Lambda a b) = (Lambda (reduce a) (reduce b))
 
 reduce :: Lexp -> Lexp
 reduce lexp
-  | eta lexp /= lexp  = reduce (eta lexp)
-  | beta lexp /= lexp = reduce (beta lexp)
+--  | trace (show lexp) False == True = lexp
+  | eta lexp /= lexp  = reduce(eta lexp)
+  | beta lexp /= lexp = reduce(beta lexp)
   | otherwise         = lexp
   
   
