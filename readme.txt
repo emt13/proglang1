@@ -14,10 +14,6 @@ In order to do alpha renaming, we append a number onto the end of a variable nam
 the answer would be \y2.(y2 (y w)) where y2 is the renamed variable. In the example in the homework write up, this is equivalent to the
 'z' in that answer. The naming convention is arbitrary provided that it is consistent
 
-Bugs:
-None that we know of
-
-
 run by:
 
 ghci
